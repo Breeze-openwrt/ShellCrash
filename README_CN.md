@@ -16,7 +16,7 @@
 
 功能简介：
 --
-~专注于singbox nftables
+~专注于singbox nftables nftset <br>
 ~通过管理脚本在Shell环境下便捷使用Mihomo/Singbox内核<br>
 ~支持在Shell环境下管理<br>
 ~支持在线导入订阅及配置链接<br>
