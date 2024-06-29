@@ -1312,8 +1312,16 @@ start_nftables() { #nftables配置总入口
 	#屏蔽QUIC
 	[ "$quic_rj" = '已启用' -a "$lan_proxy" = true -a "$redir_mod" != "Redir模式" ] && {
 		nft add chain inet shellcrash quic_rj { type filter hook input priority 0 \; }
-		[ -n "$CN_IP" ] && nft add rule inet shellcrash quic_rj ip daddr {$CN_IP} return
-		[ -n "$CN_IP6" ] && nft add rule inet shellcrash quic_rj ip6 daddr {$CN_IP6} return
+
+		#[ -n "$CN_IP" ] && nft add rule inet shellcrash quic_rj ip daddr {$CN_IP} return
+		#[ -n "$CN_IP6" ] && nft add rule inet shellcrash quic_rj ip6 daddr {$CN_IP6} return
+		if [ -n "$CN_IP" ]; then
+			nft add rule inet shellcrash quic_rj ip6 daddr @cn_ipv4 return
+		fi
+		if [ -n "$CN_IP6" ]; then
+			nft add rule inet shellcrash quic_rj ip6 daddr @cn_ipv6 return
+		fi
+
 		nft add rule inet shellcrash quic_rj udp dport {443, 8443} reject comment 'ShellCrash-QUIC-REJECT'
 	}
 }
