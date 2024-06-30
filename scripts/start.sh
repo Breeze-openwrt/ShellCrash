@@ -1142,19 +1142,11 @@ start_nft_route() { #nftables-route通用工具
 	nft add rule inet shellcrash $1 ip daddr {$RESERVED_IP} return #过滤保留地址
 	nft add rule inet shellcrash $1 ip saddr != {$HOST_IP} return  #仅代理本机局域网网段流量
 
-	#统一处理nft set
-	nft delete set inet shellcrash cn_ipv4 >/dev/null 2>&1
-	nft add set inet shellcrash cn_ipv4 { type ipv4_addr\; flags interval\; }
-
-	nft delete set inet shellcrash cn_ipv6 >/dev/null 2>&1
-	nft add set inet shellcrash cn_ipv6 { type ipv6_addr\; flags interval\; }
-
 	#绕过CN-IP 非fake-ip模式 绕过中国ip 且存在 文件
 	[ "$dns_mod" != "fake-ip" -a "$cn_ip_route" = "已开启" -a -f "$BINDIR"/cn_ip.txt ] && {
 		CN_IP=$(awk '{printf "%s, ",$1}' "$BINDIR"/cn_ip.txt)
 		#[ -n "$CN_IP" ] && nft add rule inet shellcrash $1 ip daddr {$CN_IP} return
 		if [ -n "$CN_IP" ]; then
-			nft add element inet shellcrash cn_ipv4 { $CN_IP }
 			nft add rule inet shellcrash $1 ip daddr @cn_ipv4 return
 		fi
 	}
@@ -1172,8 +1164,6 @@ start_nft_route() { #nftables-route通用工具
 			CN_IP6=$(awk '{printf "%s, ",$1}' "$BINDIR"/cn_ipv6.txt)
 			#[ -n "$CN_IP6" ] && nft add rule inet shellcrash $1 ip6 daddr {$CN_IP6} return
 			if [ -n "$CN_IP6" ]; then
-
-				nft add element inet shellcrash cn_ipv6 { $CN_IP6 }
 				nft add rule inet shellcrash $1 ip6 daddr @cn_ipv6 return
 			fi
 		}
@@ -1189,8 +1179,6 @@ start_nft_route() { #nftables-route通用工具
 			CN_IP6=$(awk '{printf "%s, ",$1}' "$BINDIR"/cn_ipv6.txt)
 			#[ -n "$CN_IP6" ] && nft add rule inet shellcrash $1 ip6 daddr {$CN_IP6} return
 			if [ -n "$CN_IP6" ]; then
-
-				nft add element inet shellcrash cn_ipv6 { $CN_IP6 }
 				nft add rule inet shellcrash $1 ip6 daddr @cn_ipv6 return
 			fi
 		}
@@ -1256,6 +1244,28 @@ start_nftables() { #nftables配置总入口
 	#初始化nftables
 	nft add table inet shellcrash
 	nft flush table inet shellcrash
+
+	#初始化表
+	nft add set inet shellcrash cn_ipv4 { type ipv4_addr\; flags interval\; }
+	nft flush set inet shellcrash cn_ipv4
+
+	nft add set inet shellcrash cn_ipv6 { type ipv6_addr\; flags interval\; }
+	nft flush set inet shellcrash cn_ipv6
+
+	[ -f "$BINDIR"/cn_ip.txt ] && {
+		CN_IP=$(awk '{printf "%s, ",$1}' "$BINDIR"/cn_ip.txt)
+		if [ -n "$CN_IP" ]; then
+			nft add element inet shellcrash cn_ipv4 { $CN_IP }
+		fi
+	}
+
+	[ -f "$BINDIR"/cn_ipv6.txt ] && {
+		CN_IP6=$(awk '{printf "%s, ",$1}' "$BINDIR"/cn_ipv6.txt)
+		if [ -n "$CN_IP6" ]; then
+			nft add element inet shellcrash cn_ipv6 { $CN_IP6 }
+		fi
+	}
+
 	#公网访问防火墙
 	start_nft_wan
 	#启动DNS劫持
